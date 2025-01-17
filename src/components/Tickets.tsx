@@ -9,6 +9,8 @@ import { SearchIcon, Paperclip, Image, User, FileText } from 'lucide-react';
 import { Textarea } from './ui/textarea';
 import { Badge } from './ui/badge';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from './ui/card';
+import image from '../asset/featureimage.jpg';
+import pdf from '../asset/Typhoid.pdf';
 
 interface Ticket {
   id: string;
@@ -32,12 +34,13 @@ const dummyTickets: Ticket[] = [
     status: 'Pending',
     subject: 'User unable to log in',
     description: 'When I enter credentials, it redirects to an error page.',
-    attachments: ['file1.png', 'file2.pdf'],
+    attachments: [image, pdf],
     messages: [
       {
         time: '10:00 AM',
         message: 'I am having trouble with my booking.',
         sender: 'user',
+        attachments: [image, pdf],
       },
       {
         time: '10:05 AM',
@@ -52,7 +55,7 @@ const dummyTickets: Ticket[] = [
     status: 'Resolved',
     subject: 'Misalignment of buttons',
     description: 'Buttons overlap when viewed on mobile.',
-    attachments: ['screenshot.png'],
+    attachments: [image],
     messages: [
       {
         time: '11:00 AM',
@@ -94,6 +97,7 @@ export function Tickets() {
   const [replyMessage, setReplyMessage] = useState('');
   const [open, setOpen] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null); // State for full-screen image
   const location = useLocation();
   const { toast } = useToast();
 
@@ -176,28 +180,44 @@ export function Tickets() {
 
   const renderAttachmentPreview = (attachment: string | File) => {
     const fileType = typeof attachment === 'string' ? attachment.split('.').pop()?.toLowerCase() : attachment.name.split('.').pop()?.toLowerCase();
+
+    const handleDownload = () => {
+      const url = typeof attachment === 'string' ? attachment : URL.createObjectURL(attachment);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = typeof attachment === 'string' ? attachment.split('/').pop() || 'file' : attachment.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+
+    const handleImageClick = () => {
+      const src = typeof attachment === 'string' ? attachment : URL.createObjectURL(attachment);
+      setSelectedImage(src); // Set the selected image for full-screen view
+    };
+
     if (['png', 'jpeg', 'jpg'].includes(fileType || '')) {
-      const src = typeof attachment === 'string' ? `/api/placeholder/100/100` : URL.createObjectURL(attachment);
+      const src = typeof attachment === 'string' ? attachment : URL.createObjectURL(attachment);
       return (
-        <div className="relative group">
+        <div className="relative group cursor-pointer" onClick={handleImageClick}>
           <img
             src={src}
             alt={typeof attachment === 'string' ? attachment : attachment.name}
-            className="h-16 w-16 object-cover rounded-lg border border-gray-200"
+            className="h-32 w-32 object-cover rounded-lg border border-gray-200"
           />
           <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity rounded-lg flex items-center justify-center">
-            <Image className="h-6 w-6 text-white opacity-0 group-hover:opacity-100" />
+            <Image className="h-32 w-32 text-white opacity-0 group-hover:opacity-100" />
           </div>
         </div>
       );
     } else if (fileType === 'pdf') {
       return (
-        <div className="relative group">
-          <div className="h-16 w-16 rounded-lg border border-gray-200 flex items-center justify-center">
-            <FileText className="h-6 w-6 text-gray-500" />
+        <div className="relative group cursor-pointer" onClick={handleDownload}>
+          <div className="h-32 w-32 rounded-lg border border-gray-200 flex items-center justify-center">
+            <FileText className="h-32 w-32 text-gray-500" />
           </div>
           <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity rounded-lg flex items-center justify-center">
-            <FileText className="h-6 w-6 text-white opacity-0 group-hover:opacity-100" />
+            <FileText className="h-32 w-32 text-white opacity-0 group-hover:opacity-100" />
           </div>
         </div>
       );
@@ -234,29 +254,64 @@ export function Tickets() {
 
   return (
     <div className="space-y-6 p-6">
-<CommandDialog open={open} onOpenChange={setOpen}>
-  {/* Dialog content with a clean, modern design */}
-  <div className="bg-white rounded-lg shadow-xl overflow-hidden">
-    <CommandInput 
-      placeholder="Search Ticket ID" 
-      className="text-lg placeholder:text-gray-400 text-gray-900 border-none focus:ring-0 p-4 w-full" 
-    />
-    <CommandList className="border-t border-gray-200 max-h-96 overflow-y-auto">
-      <CommandEmpty className="text-gray-500 p-4">No results found.</CommandEmpty>
-      {dummyTickets.map((ticket) => (
-        <CommandItem
-          key={ticket.id}
-          value={String(ticket.id)}
-          onSelect={handleSearchTicket}
-          className="text-gray-900 hover:bg-gray-100 p-4 cursor-pointer flex items-center"
+      {/* Full-screen image modal */}
+      {selectedImage && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
+          onClick={() => setSelectedImage(null)} // Close modal on click outside
         >
-          <SearchIcon className="mr-2 h-4 w-4 text-gray-500" />
-          {ticket.id}
-        </CommandItem>
-      ))}
-    </CommandList>
-  </div>
-</CommandDialog>
+          <div className="relative max-w-full max-h-full">
+            <img
+              src={selectedImage}
+              alt="Full-screen attachment"
+              className="max-w-full max-h-full"
+            />
+            <button
+              className="absolute top-0 right-0 bg-white rounded-full p-2 hover:bg-red-500"
+              onClick={() => setSelectedImage(null)} // Close modal on button click
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6 text-gray-700"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Rest of the component */}
+      <CommandDialog open={open} onOpenChange={setOpen}>
+        <div className="bg-white rounded-lg shadow-xl overflow-hidden">
+          <CommandInput
+            placeholder="Search Ticket ID"
+            className="text-lg placeholder:text-gray-400 text-gray-900 border-none focus:ring-0 p-4 w-full"
+          />
+          <CommandList className="border-t border-gray-200 max-h-96 overflow-y-auto">
+            <CommandEmpty className="text-gray-500 p-4">No results found.</CommandEmpty>
+            {dummyTickets.map((ticket) => (
+              <CommandItem
+                key={ticket.id}
+                value={String(ticket.id)}
+                onSelect={handleSearchTicket}
+                className="text-gray-900 hover:bg-gray-100 p-4 cursor-pointer flex items-center"
+              >
+                <SearchIcon className="mr-2 h-4 w-4 text-gray-500" />
+                {ticket.id}
+              </CommandItem>
+            ))}
+          </CommandList>
+        </div>
+      </CommandDialog>
 
       {selectedTicket ? (
         <Card className="bg-white rounded-lg shadow-lg">
@@ -327,9 +382,6 @@ export function Tickets() {
                       {selectedTicket.attachments.map((attachment, index) => (
                         <div key={index}>
                           {renderAttachmentPreview(attachment)}
-                          <span className="text-sm text-gray-500 mt-1 block text-center">
-                            {attachment}
-                          </span>
                         </div>
                       ))}
                     </div>
@@ -348,15 +400,6 @@ export function Tickets() {
                             : 'bg-blue-600 text-white'
                         }`}>
                           {message.message}
-                          {message.attachments && message.attachments.length > 0 && (
-                            <div className="flex gap-2 mt-2">
-                              {message.attachments.map((attachment, idx) => (
-                                <div key={idx}>
-                                  {renderAttachmentPreview(attachment)}
-                                </div>
-                              ))}
-                            </div>
-                          )}
                         </div>
                       </div>
                     </div>

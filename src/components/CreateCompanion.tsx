@@ -227,6 +227,7 @@ import { useState } from 'react';
               const sheetName = workbook.SheetNames[0];
               const worksheet = workbook.Sheets[sheetName];
               const data = XLSX.utils.sheet_to_json(worksheet) as any[];
+              console.log('Parsed Data:', data);
       
               if (data.length === 0) {
                 alert('The Excel file is empty.');
